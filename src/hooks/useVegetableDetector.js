@@ -19,6 +19,8 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
   const [detectionResult, setDetectionResult] = useState(null);
   const [stableLabel, setStableLabel] = useState(null);
   const [stableCount, setStableCount] = useState(0);
+  const [predictionCount, setPredictionCount] = useState(0);
+  const [scanStartedAt, setScanStartedAt] = useState(null);
   const [detectionError, setDetectionError] = useState(null);
   const animationFrameRef = useRef(null);
   const lastPredictionTimeRef = useRef(0);
@@ -99,6 +101,8 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
       setDetectionResult(null);
       setStableLabel(null);
       setStableCount(0);
+      setPredictionCount(0);
+      setScanStartedAt(null);
       lastLabelRef.current = null;
 
       if (animationFrameRef.current) {
@@ -109,6 +113,7 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
     }
 
     isLoopActiveRef.current = true;
+    setScanStartedAt(Date.now());
     const frameDuration = 1000 / Number(fpsLimit || APP_CONFIG.defaultFpsLimit);
 
     const loop = async (timestamp) => {
@@ -131,6 +136,7 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
         try {
           const result = await detectorService.predict(video);
           setDetectionResult(result);
+          setPredictionCount((count) => count + 1);
           updateStableLabel(result);
           setDetectionError(null);
         } catch (error) {
@@ -167,6 +173,8 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
     detectionResult,
     stableLabel,
     stableCount,
+    predictionCount,
+    scanStartedAt,
     stableTarget: APP_CONFIG.stablePredictionTarget,
     detectionError,
   };

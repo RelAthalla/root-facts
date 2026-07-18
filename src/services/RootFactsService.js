@@ -33,6 +33,19 @@ function normalizeGeneratedText(output, prompt) {
   return conciseText.slice(0, 420);
 }
 
+function isReadableGeneratedText(text) {
+  if (!text || text.length < 24) {
+    return false;
+  }
+
+  const letters = text.match(/[a-z]/gi)?.length || 0;
+  const spaces = text.match(/\s/g)?.length || 0;
+  const repeatedChunk = /(.{4,18})\1{2,}/i.test(text.replace(/\s+/g, ''));
+  const longSingleToken = text.split(/\s+/).some((token) => token.length > 34);
+
+  return letters >= 18 && spaces >= 3 && !repeatedChunk && !longSingleToken;
+}
+
 export class RootFactsService {
   constructor() {
     this.generator = null;
@@ -79,7 +92,7 @@ export class RootFactsService {
 
       if (isWebGPUSupported()) {
         try {
-          this.generator = await createPipeline({ device: 'webgpu', dtype: 'q8' });
+          this.generator = await createPipeline({ device: 'webgpu' });
           this.currentBackend = 'webgpu';
         } catch (error) {
           console.warn('Transformers.js WebGPU gagal, fallback ke runtime default/WASM.', error);
@@ -114,11 +127,11 @@ export class RootFactsService {
     const personaInstruction = persona?.instruction || TONE_CONFIG.availableTones[0].instruction;
 
     return [
-      'You are a friendly educational assistant.',
+      'You are a friendly educational assistant for a vegetable camera app.',
       `The detected vegetable is: ${vegetableName}.`,
-      'Write one short, interesting, relevant, and factual fun fact about this vegetable.',
+      'Return only one natural English sentence as a short, interesting, relevant, and factual fun fact.',
       personaInstruction,
-      'Keep the answer concise and do not repeat these instructions.',
+      'Do not repeat the instruction, do not make a list, and do not output random characters.',
     ].join(' ');
   }
 
@@ -140,15 +153,34 @@ export class RootFactsService {
     const prompt = this.buildPrompt(vegetableName);
 
     try {
-      const output = await this.generator(prompt, {
+      const generationOptions = {
         max_new_tokens: TEXT_GENERATION_CONFIG.max_new_tokens,
         temperature: TEXT_GENERATION_CONFIG.temperature,
         top_p: TEXT_GENERATION_CONFIG.top_p,
         do_sample: TEXT_GENERATION_CONFIG.do_sample,
-      });
+        repetition_penalty: 1.25,
+        no_repeat_ngram_size: 3,
+      };
+      let output = await this.generator(prompt, generationOptions);
+      let text = normalizeGeneratedText(output, prompt);
+
+      if (!isReadableGeneratedText(text)) {
+        const retryPrompt = [
+          `Vegetable: ${vegetableName}.`,
+          'Task: write exactly one simple factual fun fact sentence in English.',
+          'Avoid repeated words and random characters.',
+        ].join(' ');
+
+        output = await this.generator(retryPrompt, {
+          ...generationOptions,
+          max_new_tokens: 35,
+          do_sample: false,
+        });
+        text = normalizeGeneratedText(output, retryPrompt);
+      }
 
       return {
-        text: normalizeGeneratedText(output, prompt),
+        text,
         prompt,
         vegetableName,
         tone: this.currentTone,

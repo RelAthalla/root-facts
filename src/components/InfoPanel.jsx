@@ -13,6 +13,7 @@ function InfoPanel({
   detectionResult,
   stableLabel,
   stableCount,
+  predictionCount,
   stableTarget,
   isLocked,
   persona,
@@ -56,6 +57,8 @@ function InfoPanel({
         <div className="debug-grid">
           <span>Status label</span>
           <strong>{isLocked ? 'Terkunci' : stableLabel || `${stableCount}/${stableTarget}`}</strong>
+          <span>Observasi</span>
+          <strong>{isLocked ? 'Selesai' : `${predictionCount} frame`}</strong>
           <span>Persona aktif</span>
           <strong>{activePersona?.label}</strong>
         </div>

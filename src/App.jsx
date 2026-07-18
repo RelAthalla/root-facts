@@ -34,6 +34,8 @@ function App() {
     detectionResult,
     stableLabel,
     stableCount,
+    predictionCount,
+    scanStartedAt,
     stableTarget,
     detectionError,
   } = useVegetableDetector({
@@ -60,7 +62,17 @@ function App() {
   const needsRegenerate = Boolean(funFact && activeGenerationKey !== lastGeneratedKey);
 
   useEffect(() => {
-    if (lockedDetection || !stableLabel || !detectionResult?.isValid) {
+    const observedLongEnough = scanStartedAt
+      && Date.now() - scanStartedAt >= APP_CONFIG.minimumScanDurationMs;
+    const hasEnoughPredictions = predictionCount >= APP_CONFIG.minimumPredictionCountBeforeLock;
+
+    if (
+      lockedDetection
+      || !stableLabel
+      || !detectionResult?.isValid
+      || !observedLongEnough
+      || !hasEnoughPredictions
+    ) {
       return;
     }
 
@@ -72,7 +84,14 @@ function App() {
 
     setLockedDetection(lockedResult);
     stopCamera();
-  }, [detectionResult, lockedDetection, stableLabel, stopCamera]);
+  }, [
+    detectionResult,
+    lockedDetection,
+    predictionCount,
+    scanStartedAt,
+    stableLabel,
+    stopCamera,
+  ]);
 
   useEffect(() => {
     if (!lockedDetection || textState.isGenerating) {
@@ -143,6 +162,7 @@ function App() {
           detectionResult={activeDetection}
           stableLabel={activeStableLabel}
           stableCount={stableCount}
+          predictionCount={predictionCount}
           stableTarget={stableTarget}
           isLocked={Boolean(lockedDetection)}
           persona={persona}

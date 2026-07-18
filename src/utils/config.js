@@ -1,6 +1,8 @@
 export const APP_CONFIG = {
   detectionConfidenceThreshold: 0.6,
-  stablePredictionTarget: 2,
+  stablePredictionTarget: 4,
+  minimumScanDurationMs: 3000,
+  minimumPredictionCountBeforeLock: 8,
   defaultFpsLimit: 10,
   fpsOptions: [5, 10, 15],
   modelUrl: '/model/model.json',
@@ -41,10 +43,10 @@ export const TONE_CONFIG = {
 export const TEXT_GENERATION_CONFIG = {
   modelId: 'Xenova/flan-t5-small',
   task: 'text2text-generation',
-  max_new_tokens: 80,
-  temperature: 0.8,
-  top_p: 0.9,
-  do_sample: true,
+  max_new_tokens: 55,
+  temperature: 0.4,
+  top_p: 0.85,
+  do_sample: false,
 };
 
 export const isValidDetection = (result) => {
