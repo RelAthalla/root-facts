@@ -79,12 +79,16 @@ function InfoPanel({
         </div>
 
         <button
-          className="primary-btn"
+          className={`primary-btn ${textState.isGenerating ? 'is-loading' : ''}`}
           onClick={onGenerate}
           disabled={!canGenerate}
         >
           {textState.isGenerating ? <LoaderCircle className="spin-icon" size={16} /> : <Lightbulb size={16} />}
-          <span>{hasFact || needsRegenerate ? 'Regenerate Fun Fact' : 'Generate Fun Fact'}</span>
+          <span>
+            {textState.isGenerating
+              ? 'Generating...'
+              : hasFact || needsRegenerate ? 'Regenerate Fun Fact' : 'Generate Fun Fact'}
+          </span>
         </button>
 
         {isLocked && (
@@ -94,7 +98,7 @@ function InfoPanel({
           </button>
         )}
 
-        <div className="fun-fact-card">
+        <div className={`fun-fact-card ${textState.isGenerating ? 'is-generating' : ''}`}>
           <div className="fun-fact-header">
             <div className="fun-fact-icon">
               <Lightbulb size={22} />
@@ -105,7 +109,7 @@ function InfoPanel({
             </div>
           </div>
 
-          <div className="progress-line">
+          <div className={`progress-line ${textState.isGenerating ? 'is-active' : ''}`}>
             <div style={{ width: `${Math.round(textState.progress)}%` }}></div>
           </div>
 
@@ -122,6 +126,9 @@ function InfoPanel({
             {textState.isGenerating && !hasFact && (
               <span className="loading-copy">Memuat atau membuat fakta menarik...</span>
             )}
+            {textState.isGenerating && hasFact && (
+              <span className="loading-copy">Sedang membuat versi baru...</span>
+            )}
             {!textState.isGenerating && !hasFact && (
               <span className="loading-copy">
                 {isLocked
@@ -136,7 +143,7 @@ function InfoPanel({
                     Persona atau label berubah. Tekan regenerate untuk memperbarui.
                   </span>
                 )}
-                <span>{funFact.text}</span>
+                <span className={textState.isGenerating ? 'stale-fact' : ''}>{funFact.text}</span>
               </>
             )}
           </div>
@@ -145,7 +152,7 @@ function InfoPanel({
             id="btn-copy"
             className={`copy-btn ${copyStatus === 'copied' ? 'copied' : ''}`}
             onClick={onCopyFact}
-            disabled={!hasFact}
+            disabled={!hasFact || textState.isGenerating}
             title="Salin fakta"
           >
             {copyStatus === 'copied' ? <ClipboardCheck size={16} /> : <ClipboardCopy size={16} />}

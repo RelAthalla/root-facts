@@ -353,6 +353,10 @@ select:disabled {
   background: var(--primary-dark);
 }
 
+.primary-btn.is-loading {
+  background: #7abfa7;
+}
+
 .results-section {
   flex: 1;
 }
@@ -452,6 +456,11 @@ select:disabled {
   box-shadow: var(--shadow-sm);
 }
 
+.fun-fact-card.is-generating {
+  border-color: #86efac;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+}
+
 .fun-fact-header {
   gap: 0.7rem;
   padding-right: 5rem;
@@ -487,6 +496,19 @@ select:disabled {
   height: 6px;
 }
 
+.progress-line.is-active {
+  position: relative;
+}
+
+.progress-line.is-active::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  width: 38%;
+  background: rgba(255, 255, 255, 0.55);
+  animation: progressSweep 1s ease-in-out infinite;
+}
+
 .fun-fact-text {
   min-height: 78px;
   color: var(--ink);
@@ -502,6 +524,10 @@ select:disabled {
   margin-bottom: 0.45rem;
   color: #9a3412;
   font-weight: 700;
+}
+
+.stale-fact {
+  opacity: 0.5;
 }
 
 .copy-btn {
@@ -556,6 +582,16 @@ select:disabled {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes progressSweep {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(280%);
   }
 }
 
