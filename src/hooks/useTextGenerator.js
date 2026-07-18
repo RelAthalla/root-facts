@@ -5,6 +5,14 @@ import { logError } from '../utils/common.js';
 
 const rootFactsService = new RootFactsService();
 
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
 export function useTextGenerator() {
   const [persona, setPersona] = useState(TONE_CONFIG.defaultTone);
   const [textState, setTextState] = useState({
@@ -40,6 +48,8 @@ export function useTextGenerator() {
     }));
 
     try {
+      await waitForNextPaint();
+
       await rootFactsService.loadModel((update) => {
         setTextState((current) => ({
           ...current,
@@ -51,6 +61,13 @@ export function useTextGenerator() {
           backend: rootFactsService.currentBackend,
         }));
       });
+
+      setTextState((current) => ({
+        ...current,
+        isGenerating: true,
+        status: 'Membuat fun fact...',
+      }));
+      await waitForNextPaint();
 
       const result = await rootFactsService.generateFacts(vegetableName, persona);
       setFunFact(result);
