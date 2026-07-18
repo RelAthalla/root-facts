@@ -1,6 +1,7 @@
 export const APP_CONFIG = {
   detectionConfidenceThreshold: 0.6,
   stablePredictionTarget: 4,
+  predictionWindowSize: 16,
   minimumScanDurationMs: 3000,
   minimumPredictionCountBeforeLock: 8,
   defaultFpsLimit: 10,

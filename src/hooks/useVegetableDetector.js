@@ -26,7 +26,7 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
   const lastPredictionTimeRef = useRef(0);
   const isPredictingRef = useRef(false);
   const isLoopActiveRef = useRef(false);
-  const lastLabelRef = useRef(null);
+  const predictionWindowRef = useRef([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -79,20 +79,35 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
       return;
     }
 
-    if (lastLabelRef.current === result.className) {
-      setStableCount((count) => {
-        const nextCount = Math.min(count + 1, APP_CONFIG.stablePredictionTarget);
-        if (nextCount >= APP_CONFIG.stablePredictionTarget) {
-          setStableLabel(result.className);
-        }
-        return nextCount;
-      });
-      return;
-    }
+    predictionWindowRef.current = [
+      ...predictionWindowRef.current,
+      { className: result.className, score: result.score },
+    ].slice(-APP_CONFIG.predictionWindowSize);
 
-    lastLabelRef.current = result.className;
-    setStableCount(1);
-    setStableLabel(null);
+    const votes = predictionWindowRef.current.reduce((summary, item) => {
+      const current = summary.get(item.className) || { count: 0, totalScore: 0 };
+      summary.set(item.className, {
+        count: current.count + 1,
+        totalScore: current.totalScore + item.score,
+      });
+      return summary;
+    }, new Map());
+    const [bestLabel, bestVote] = [...votes.entries()].sort((first, second) => {
+      if (second[1].count !== first[1].count) {
+        return second[1].count - first[1].count;
+      }
+
+      return second[1].totalScore - first[1].totalScore;
+    })[0] || [];
+    const averageScore = bestVote ? bestVote.totalScore / bestVote.count : 0;
+    const isStable = (
+      bestLabel
+      && bestVote.count >= APP_CONFIG.stablePredictionTarget
+      && averageScore >= APP_CONFIG.detectionConfidenceThreshold
+    );
+
+    setStableCount(bestVote?.count || 0);
+    setStableLabel(isStable ? bestLabel : null);
   }, []);
 
   useEffect(() => {
@@ -103,7 +118,7 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
       setStableCount(0);
       setPredictionCount(0);
       setScanStartedAt(null);
-      lastLabelRef.current = null;
+      predictionWindowRef.current = [];
 
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Header from './components/Header.jsx';
 import CameraSection from './components/CameraSection.jsx';
 import InfoPanel from './components/InfoPanel.jsx';
@@ -26,7 +26,6 @@ function App() {
   } = useCamera();
   const [fpsLimit, setFpsLimit] = useState(APP_CONFIG.defaultFpsLimit);
   const [lockedDetection, setLockedDetection] = useState(null);
-  const attemptedGenerationKeysRef = useRef(new Set());
   const isOnline = useOnlineStatus();
   const pwaInstall = usePwaInstall();
   const {
@@ -93,29 +92,7 @@ function App() {
     stopCamera,
   ]);
 
-  useEffect(() => {
-    if (!lockedDetection || textState.isGenerating) {
-      return;
-    }
-
-    const generationKey = `${lockedDetection.className}:${persona}`;
-
-    if (lastGeneratedKey === generationKey || attemptedGenerationKeysRef.current.has(generationKey)) {
-      return;
-    }
-
-    attemptedGenerationKeysRef.current.add(generationKey);
-    generateFunFact(lockedDetection.className);
-  }, [
-    generateFunFact,
-    lastGeneratedKey,
-    lockedDetection,
-    persona,
-    textState.isGenerating,
-  ]);
-
   const resetLockedDetection = useCallback(() => {
-    attemptedGenerationKeysRef.current.clear();
     setLockedDetection(null);
     resetFunFact();
   }, [resetFunFact]);

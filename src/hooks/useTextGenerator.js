@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { RootFactsService } from '../services/RootFactsService.js';
-import { TONE_CONFIG } from '../utils/config.js';
+import { TEXT_GENERATION_CONFIG, TONE_CONFIG } from '../utils/config.js';
 import { logError } from '../utils/common.js';
 
 const rootFactsService = new RootFactsService();
@@ -18,6 +18,7 @@ export function useTextGenerator() {
   });
   const [funFact, setFunFact] = useState(null);
   const [lastGeneratedKey, setLastGeneratedKey] = useState('');
+  const generationLockRef = useRef(false);
 
   const activePersona = useMemo(
     () => TONE_CONFIG.availableTones.find((item) => item.value === persona),
@@ -25,10 +26,11 @@ export function useTextGenerator() {
   );
 
   const generateFunFact = useCallback(async (vegetableName) => {
-    if (!vegetableName || textState.isGenerating) {
+    if (!vegetableName || generationLockRef.current) {
       return;
     }
 
+    generationLockRef.current = true;
     const generationKey = `${vegetableName}:${persona}`;
     setTextState((current) => ({
       ...current,
@@ -41,9 +43,11 @@ export function useTextGenerator() {
       await rootFactsService.loadModel((update) => {
         setTextState((current) => ({
           ...current,
-          status: update.status,
-          progress: Math.min(100, Math.max(0, update.progress)),
-          file: update.file || current.file,
+          status: update.status.includes('siap') ? update.status : 'Memuat model teks...',
+          progress: Math.max(current.progress, Math.min(100, Math.max(0, update.progress))),
+          file: update.status.includes('siap')
+            ? update.file || current.file
+            : TEXT_GENERATION_CONFIG.modelId,
           backend: rootFactsService.currentBackend,
         }));
       });
@@ -58,6 +62,7 @@ export function useTextGenerator() {
         backend: result.backend,
         isReady: true,
         isGenerating: false,
+        error: null,
       }));
     } catch (error) {
       logError('Fun fact gagal dibuat', error);
@@ -67,8 +72,10 @@ export function useTextGenerator() {
         isGenerating: false,
         error: error.message,
       }));
+    } finally {
+      generationLockRef.current = false;
     }
-  }, [persona, textState.isGenerating]);
+  }, [persona]);
 
   const resetFunFact = useCallback(() => {
     setFunFact(null);

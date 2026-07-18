@@ -125,7 +125,7 @@ function InfoPanel({
             {!textState.isGenerating && !hasFact && (
               <span className="loading-copy">
                 {isLocked
-                  ? 'Label sudah terkunci. Fun fact akan diproses otomatis.'
+                  ? 'Label sudah terkunci. Tekan Generate Fun Fact untuk membuat fakta.'
                   : 'Tunggu label stabil, lalu kamera akan mengunci hasil scan.'}
               </span>
             )}

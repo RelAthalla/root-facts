@@ -1,5 +1,4 @@
 import { TEXT_GENERATION_CONFIG, TONE_CONFIG } from '../utils/config.js';
-import { isWebGPUSupported } from '../utils/common.js';
 
 function getProgressPercentage(event) {
   if (typeof event?.progress === 'number') {
@@ -24,7 +23,7 @@ function normalizeGeneratedText(output, prompt) {
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (!text) {
+  if (!text || /do not repeat|answer with exactly|question:|task:/i.test(text)) {
     return 'Fun fact belum berhasil dibentuk. Coba generate ulang dengan label yang lebih stabil.';
   }
 
@@ -90,19 +89,8 @@ export class RootFactsService {
         },
       );
 
-      if (isWebGPUSupported()) {
-        try {
-          this.generator = await createPipeline({ device: 'webgpu' });
-          this.currentBackend = 'webgpu';
-        } catch (error) {
-          console.warn('Transformers.js WebGPU gagal, fallback ke runtime default/WASM.', error);
-        }
-      }
-
-      if (!this.generator) {
-        this.generator = await createPipeline({ dtype: 'q8' });
-        this.currentBackend = 'wasm/default';
-      }
+      this.generator = await createPipeline({ dtype: 'q8' });
+      this.currentBackend = 'wasm/default';
 
       this.isModelLoaded = true;
       onProgress?.({
@@ -127,11 +115,9 @@ export class RootFactsService {
     const personaInstruction = persona?.instruction || TONE_CONFIG.availableTones[0].instruction;
 
     return [
-      'You are a friendly educational assistant for a vegetable camera app.',
-      `The detected vegetable is: ${vegetableName}.`,
-      'Return only one natural English sentence as a short, interesting, relevant, and factual fun fact.',
+      `Question: What is one short fun fact about ${vegetableName}?`,
+      'Answer with exactly one simple factual English sentence.',
       personaInstruction,
-      'Do not repeat the instruction, do not make a list, and do not output random characters.',
     ].join(' ');
   }
 
@@ -177,6 +163,10 @@ export class RootFactsService {
           do_sample: false,
         });
         text = normalizeGeneratedText(output, retryPrompt);
+      }
+
+      if (!isReadableGeneratedText(text)) {
+        throw new Error('Model teks belum menghasilkan fun fact yang valid. Coba regenerate.');
       }
 
       return {
