@@ -42,10 +42,10 @@ export const TONE_CONFIG = {
 };
 
 export const TEXT_GENERATION_CONFIG = {
-  modelId: 'Xenova/flan-t5-small',
-  task: 'text2text-generation',
-  max_new_tokens: 55,
-  temperature: 0.4,
+  modelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+  task: 'text-generation',
+  max_new_tokens: 60,
+  temperature: 0.2,
   top_p: 0.85,
   do_sample: false,
 };

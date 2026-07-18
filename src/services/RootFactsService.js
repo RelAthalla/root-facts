@@ -12,18 +12,35 @@ function getProgressPercentage(event) {
   return null;
 }
 
-function normalizeGeneratedText(output, prompt) {
+function getRawGeneratedText(output, prompt) {
   const firstResult = Array.isArray(output) ? output[0] : output;
-  const rawText = firstResult?.generated_text || firstResult?.summary_text || String(firstResult || '');
-  let text = rawText.replace(prompt, '').trim();
+
+  if (Array.isArray(firstResult?.generated_text)) {
+    const assistantMessage = [...firstResult.generated_text]
+      .reverse()
+      .find((message) => message.role === 'assistant');
+    return assistantMessage?.content || '';
+  }
+
+  return firstResult?.generated_text || firstResult?.summary_text || String(firstResult || '');
+}
+
+function normalizeGeneratedText(output, prompt) {
+  const rawText = getRawGeneratedText(output, prompt);
+  const promptText = typeof prompt === 'string'
+    ? prompt
+    : prompt.map((message) => message.content).join(' ');
+  let text = rawText.replace(promptText, '').trim();
 
   text = text
     .replace(/^Fun fact:\s*/i, '')
     .replace(/^Answer:\s*/i, '')
+    .replace(/^Assistant:\s*/i, '')
+    .replace(/<\|.*?\|>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 
-  if (!text || /do not repeat|answer with exactly|question:|task:/i.test(text)) {
+  if (!text || /do not repeat|answer with exactly|question:|task:|use a simple|write in a playful/i.test(text)) {
     return 'Fun fact belum berhasil dibentuk. Coba generate ulang dengan label yang lebih stabil.';
   }
 
@@ -41,8 +58,17 @@ function isReadableGeneratedText(text) {
   const spaces = text.match(/\s/g)?.length || 0;
   const repeatedChunk = /(.{4,18})\1{2,}/i.test(text.replace(/\s+/g, ''));
   const longSingleToken = text.split(/\s+/).some((token) => token.length > 34);
+  const unsafeForKids = /\bsexy\b|\bpassion\b|\bcancer prevention\b/i.test(text);
+  const obviousWrongFact = /\bcontains seeds and nuts\b|\bgreek word\b|\bseriously\b/i.test(text);
 
-  return letters >= 18 && spaces >= 3 && !repeatedChunk && !longSingleToken;
+  return (
+    letters >= 18
+    && spaces >= 3
+    && !repeatedChunk
+    && !longSingleToken
+    && !unsafeForKids
+    && !obviousWrongFact
+  );
 }
 
 export class RootFactsService {
@@ -89,7 +115,7 @@ export class RootFactsService {
         },
       );
 
-      this.generator = await createPipeline({ dtype: 'q8' });
+      this.generator = await createPipeline({ dtype: 'q4' });
       this.currentBackend = 'wasm/default';
 
       this.isModelLoaded = true;
@@ -115,10 +141,20 @@ export class RootFactsService {
     const personaInstruction = persona?.instruction || TONE_CONFIG.availableTones[0].instruction;
 
     return [
-      `Question: What is one short fun fact about ${vegetableName}?`,
-      'Answer with exactly one simple factual English sentence.',
-      personaInstruction,
-    ].join(' ');
+      {
+        role: 'system',
+        content: 'You write one safe, factual, family-friendly sentence only. Never repeat the prompt.',
+      },
+      {
+        role: 'user',
+        content: [
+          `Detected vegetable: ${vegetableName}.`,
+          'Write one short fun fact about that vegetable.',
+          personaInstruction,
+          'Answer only with the fun fact sentence.',
+        ].join(' '),
+      },
+    ];
   }
 
   async generateFacts(vegetableName, tone = this.currentTone) {
@@ -152,14 +188,19 @@ export class RootFactsService {
 
       if (!isReadableGeneratedText(text)) {
         const retryPrompt = [
-          `Vegetable: ${vegetableName}.`,
-          'Task: write exactly one simple factual fun fact sentence in English.',
-          'Avoid repeated words and random characters.',
-        ].join(' ');
+          {
+            role: 'system',
+            content: 'You answer with one simple factual sentence only.',
+          },
+          {
+            role: 'user',
+            content: `Give one accurate fun fact about ${vegetableName}.`,
+          },
+        ];
 
         output = await this.generator(retryPrompt, {
           ...generationOptions,
-          max_new_tokens: 35,
+          max_new_tokens: 40,
           do_sample: false,
         });
         text = normalizeGeneratedText(output, retryPrompt);
