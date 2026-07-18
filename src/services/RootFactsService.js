@@ -141,20 +141,11 @@ export class RootFactsService {
     const personaInstruction = persona?.instruction || TONE_CONFIG.availableTones[0].instruction;
 
     return [
-      {
-        role: 'system',
-        content: 'You write one safe, factual, family-friendly sentence only. Never repeat the prompt.',
-      },
-      {
-        role: 'user',
-        content: [
-          `Detected vegetable: ${vegetableName}.`,
-          'Write one short fun fact about that vegetable.',
-          personaInstruction,
-          'Answer only with the fun fact sentence.',
-        ].join(' '),
-      },
-    ];
+      `Vegetable: ${vegetableName}.`,
+      'Write one short, factual, family-friendly fun fact about this vegetable.',
+      personaInstruction,
+      'Output only one natural sentence.',
+    ].join(' ');
   }
 
   async generateFacts(vegetableName, tone = this.currentTone) {
@@ -187,16 +178,7 @@ export class RootFactsService {
       let text = normalizeGeneratedText(output, prompt);
 
       if (!isReadableGeneratedText(text)) {
-        const retryPrompt = [
-          {
-            role: 'system',
-            content: 'You answer with one simple factual sentence only.',
-          },
-          {
-            role: 'user',
-            content: `Give one accurate fun fact about ${vegetableName}.`,
-          },
-        ];
+        const retryPrompt = `Give one accurate, short fun fact about ${vegetableName}.`;
 
         output = await this.generator(retryPrompt, {
           ...generationOptions,
