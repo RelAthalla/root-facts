@@ -1,4 +1,4 @@
-Nama: Farrel Athalla M
+Nama: Farrel Athalla Muljawan
 Kelas: Belajar Penerapan AI di Aplikasi Web
 Proyek: Root Fact App
-URL Deployment: <ISI_URL_NETLIFY_SETELAH_DEPLOY>
+URL Deployment: https://root-facts-farrel.netlify.app/
