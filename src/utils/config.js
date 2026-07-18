@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
-  detectionConfidenceThreshold: 0.7,
-  stablePredictionTarget: 3,
+  detectionConfidenceThreshold: 0.6,
+  stablePredictionTarget: 2,
   defaultFpsLimit: 10,
   fpsOptions: [5, 10, 15],
   modelUrl: '/model/model.json',

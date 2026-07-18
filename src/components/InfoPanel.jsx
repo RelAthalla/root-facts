@@ -14,6 +14,7 @@ function InfoPanel({
   stableLabel,
   stableCount,
   stableTarget,
+  isLocked,
   persona,
   activePersona,
   onPersonaChange,
@@ -21,6 +22,7 @@ function InfoPanel({
   funFact,
   needsRegenerate,
   onGenerate,
+  onScanAgain,
   onCopyFact,
   copyStatus,
   canGenerate,
@@ -52,8 +54,8 @@ function InfoPanel({
         </div>
 
         <div className="debug-grid">
-          <span>Label stabil</span>
-          <strong>{stableLabel || `${stableCount}/${stableTarget}`}</strong>
+          <span>Status label</span>
+          <strong>{isLocked ? 'Terkunci' : stableLabel || `${stableCount}/${stableTarget}`}</strong>
           <span>Persona aktif</span>
           <strong>{activePersona?.label}</strong>
         </div>
@@ -81,6 +83,13 @@ function InfoPanel({
           {textState.isGenerating ? <LoaderCircle className="spin-icon" size={16} /> : <Lightbulb size={16} />}
           <span>{hasFact || needsRegenerate ? 'Regenerate Fun Fact' : 'Generate Fun Fact'}</span>
         </button>
+
+        {isLocked && (
+          <button className="secondary-btn" onClick={onScanAgain}>
+            <Sparkles size={16} />
+            <span>Scan sayuran lain</span>
+          </button>
+        )}
 
         <div className="fun-fact-card">
           <div className="fun-fact-header">
@@ -112,7 +121,9 @@ function InfoPanel({
             )}
             {!textState.isGenerating && !hasFact && (
               <span className="loading-copy">
-                Tunggu label stabil, lalu generate fun fact dinamis dari Transformers.js.
+                {isLocked
+                  ? 'Label sudah terkunci. Fun fact akan diproses otomatis.'
+                  : 'Tunggu label stabil, lalu kamera akan mengunci hasil scan.'}
               </span>
             )}
             {hasFact && (

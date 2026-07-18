@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Header from './components/Header.jsx';
 import CameraSection from './components/CameraSection.jsx';
 import InfoPanel from './components/InfoPanel.jsx';
@@ -20,9 +20,13 @@ function App() {
     cameraError,
     facingMode,
     setFacingMode,
+    startCamera,
+    stopCamera,
     toggleCamera,
   } = useCamera();
   const [fpsLimit, setFpsLimit] = useState(APP_CONFIG.defaultFpsLimit);
+  const [lockedDetection, setLockedDetection] = useState(null);
+  const attemptedGenerationKeysRef = useRef(new Set());
   const isOnline = useOnlineStatus();
   const pwaInstall = usePwaInstall();
   const {
@@ -46,11 +50,71 @@ function App() {
     funFact,
     lastGeneratedKey,
     generateFunFact,
+    resetFunFact,
   } = useTextGenerator();
   const { copyStatus, copyText } = useClipboard();
   const activeError = cameraError || detectionError || textState.error;
-  const activeGenerationKey = stableLabel ? `${stableLabel}:${persona}` : '';
+  const activeDetection = lockedDetection || detectionResult;
+  const activeStableLabel = lockedDetection?.className || stableLabel;
+  const activeGenerationKey = activeStableLabel ? `${activeStableLabel}:${persona}` : '';
   const needsRegenerate = Boolean(funFact && activeGenerationKey !== lastGeneratedKey);
+
+  useEffect(() => {
+    if (lockedDetection || !stableLabel || !detectionResult?.isValid) {
+      return;
+    }
+
+    const lockedResult = {
+      ...detectionResult,
+      className: stableLabel,
+      lockedAt: Date.now(),
+    };
+
+    setLockedDetection(lockedResult);
+    stopCamera();
+  }, [detectionResult, lockedDetection, stableLabel, stopCamera]);
+
+  useEffect(() => {
+    if (!lockedDetection || textState.isGenerating) {
+      return;
+    }
+
+    const generationKey = `${lockedDetection.className}:${persona}`;
+
+    if (lastGeneratedKey === generationKey || attemptedGenerationKeysRef.current.has(generationKey)) {
+      return;
+    }
+
+    attemptedGenerationKeysRef.current.add(generationKey);
+    generateFunFact(lockedDetection.className);
+  }, [
+    generateFunFact,
+    lastGeneratedKey,
+    lockedDetection,
+    persona,
+    textState.isGenerating,
+  ]);
+
+  const resetLockedDetection = useCallback(() => {
+    attemptedGenerationKeysRef.current.clear();
+    setLockedDetection(null);
+    resetFunFact();
+  }, [resetFunFact]);
+
+  const handleCameraAction = useCallback(async () => {
+    if (lockedDetection) {
+      resetLockedDetection();
+      await startCamera();
+      return;
+    }
+
+    await toggleCamera();
+  }, [lockedDetection, resetLockedDetection, startCamera, toggleCamera]);
+
+  const handleScanAgain = useCallback(async () => {
+    resetLockedDetection();
+    await startCamera();
+  }, [resetLockedDetection, startCamera]);
 
   return (
     <div className="app-container">
@@ -65,7 +129,7 @@ function App() {
           videoRef={videoRef}
           canvasRef={canvasRef}
           isRunning={isCameraActive}
-          onToggleCamera={toggleCamera}
+          onToggleCamera={handleCameraAction}
           modelState={modelState}
           cameraStatus={cameraStatus}
           facingMode={facingMode}
@@ -76,20 +140,22 @@ function App() {
         />
 
         <InfoPanel
-          detectionResult={detectionResult}
-          stableLabel={stableLabel}
+          detectionResult={activeDetection}
+          stableLabel={activeStableLabel}
           stableCount={stableCount}
           stableTarget={stableTarget}
+          isLocked={Boolean(lockedDetection)}
           persona={persona}
           activePersona={activePersona}
           onPersonaChange={setPersona}
           textState={textState}
           funFact={funFact}
           needsRegenerate={needsRegenerate}
-          onGenerate={() => generateFunFact(stableLabel)}
+          onGenerate={() => generateFunFact(activeStableLabel)}
+          onScanAgain={handleScanAgain}
           onCopyFact={() => copyText(funFact?.text)}
           copyStatus={copyStatus}
-          canGenerate={Boolean(stableLabel && !textState.isGenerating)}
+          canGenerate={Boolean(activeStableLabel && !textState.isGenerating)}
           error={activeError}
         />
       </main>

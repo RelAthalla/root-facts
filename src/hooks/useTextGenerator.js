@@ -70,6 +70,17 @@ export function useTextGenerator() {
     }
   }, [persona, textState.isGenerating]);
 
+  const resetFunFact = useCallback(() => {
+    setFunFact(null);
+    setLastGeneratedKey('');
+    setTextState((current) => ({
+      ...current,
+      status: rootFactsService.isReady() ? 'Model teks siap' : 'Model teks belum dimuat',
+      isGenerating: false,
+      error: null,
+    }));
+  }, []);
+
   return {
     persona,
     setPersona,
@@ -78,5 +89,6 @@ export function useTextGenerator() {
     funFact,
     lastGeneratedKey,
     generateFunFact,
+    resetFunFact,
   };
 }

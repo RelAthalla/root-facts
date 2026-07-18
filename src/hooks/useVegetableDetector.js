@@ -72,8 +72,7 @@ export function useVegetableDetector({ videoRef, cameraService, isCameraActive, 
 
   const updateStableLabel = useCallback((result) => {
     if (!isValidDetection(result)) {
-      lastLabelRef.current = null;
-      setStableCount(0);
+      setStableCount((count) => Math.max(0, count - 1));
       setStableLabel(null);
       return;
     }
