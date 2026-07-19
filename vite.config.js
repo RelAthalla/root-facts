@@ -45,8 +45,11 @@ export default defineConfig({
         ],
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         cleanupOutdatedCaches: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,bin,webmanifest,wasm}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,bin,webmanifest}'],
+        globIgnores: ['**/assets/ort-wasm*.wasm'],
         maximumFileSizeToCacheInBytes: 35 * 1024 * 1024,
         navigateFallback: '/index.html',
         additionalManifestEntries: [
@@ -55,6 +58,25 @@ export default defineConfig({
           { url: '/model/metadata.json', revision: 'root-fact-cv-v1' },
         ],
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) => (
+              request.destination === 'script'
+              || request.destination === 'style'
+              || request.destination === 'image'
+              || url.pathname.endsWith('.wasm')
+            ),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'root-fact-runtime-assets-v1',
+              expiration: {
+                maxEntries: 80,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/huggingface\.co\/.*$/i,
             handler: 'CacheFirst',
