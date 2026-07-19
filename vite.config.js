@@ -52,11 +52,6 @@ export default defineConfig({
         globIgnores: ['**/assets/ort-wasm*.wasm'],
         maximumFileSizeToCacheInBytes: 35 * 1024 * 1024,
         navigateFallback: '/index.html',
-        additionalManifestEntries: [
-          { url: '/model/model.json', revision: 'root-fact-cv-v1' },
-          { url: '/model/weights.bin', revision: 'root-fact-cv-v1' },
-          { url: '/model/metadata.json', revision: 'root-fact-cv-v1' },
-        ],
         runtimeCaching: [
           {
             urlPattern: ({ request, url }) => (
